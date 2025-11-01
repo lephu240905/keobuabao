@@ -1,8 +1,289 @@
-<html lang="en">
+<!DOCTYPE html>
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>Kéo Búa Bao GAME</title>
+    <link rel="stylesheet" href="./assets/style.css?v=4.0" />
   </head>
-  <body></body>
+  <body>
+    <div class="container">
+      <!-- Màn hình chính -->
+      <div id="home-screen" class="screen active">
+        <h1>Kéo Búa Bao GAME</h1>
+        <div class="player-info">
+          <div class="input-group">
+            <label for="player-name">Tên của bạn</label>
+            <input
+              type="text"
+              id="player-name"
+              placeholder="VD: Gamer123"
+              maxlength="15"
+            />
+          </div>
+          <div class="input-group">
+            <label>Chọn Avatar</label>
+            <div class="avatar-selector">
+              <span class="avatar selected">😀</span>
+              <span class="avatar">😎</span> <span class="avatar">🤖</span>
+              <span class="avatar">👻</span> <span class="avatar">🦊</span>
+            </div>
+            <label style="margin-top: 1rem">Hoặc chọn Avatar hình ảnh</label>
+            <div class="image-avatar-selector">
+              <img
+                src="assets/images/avatars/avatar1.png"
+                class="avatar-image"
+                data-avatar="avatar1.png"
+                alt="Avatar 1"
+              />
+              <img
+                src="assets/images/avatars/avatar2.png"
+                class="avatar-image"
+                data-avatar="avatar2.png"
+                alt="Avatar 2"
+              />
+              <img
+                src="assets/images/avatars/avatar3.png"
+                class="avatar-image"
+                data-avatar="avatar3.png"
+                alt="Avatar 3"
+              />
+              <img
+                src="assets/images/avatars/avatar4.png"
+                class="avatar-image"
+                data-avatar="avatar4.png"
+                alt="Avatar 4"
+              />
+            </div>
+            <label for="avatar-upload-input" class="upload-avatar-btn">+</label>
+            <input type="file" id="avatar-upload-input" accept="image/*" />
+          </div>
+        </div>
+        <div class="room-options">
+          <div class="game-modes">
+            <h3>🎮 Chế độ chơi</h3>
+            <div class="mode-selector">
+              <button class="mode-btn active" data-mode="classic">
+                <span class="mode-icon">⚔️</span>
+                <span class="mode-name">Cổ điển</span>
+                <span class="mode-desc">Kéo Búa Bao truyền thống</span>
+              </button>
+              <button class="mode-btn" data-mode="speed">
+                <span class="mode-icon">⚡</span>
+                <span class="mode-name">Tốc độ</span>
+                <span class="mode-desc">5 giây mỗi lượt</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="btn-group">
+            <button id="create-room-btn" class="btn">Tạo phòng Online</button>
+            <button id="play-cpu-btn" class="btn btn-secondary">
+              Chơi với Máy
+            </button>
+          </div>
+          <div class="input-group">
+            <label for="room-code-input">Tham gia phòng Online</label>
+            <div id="join-room-btn-wrapper">
+              <input
+                type="text"
+                id="room-code-input"
+                placeholder="Nhập mã phòng..."
+              />
+              <button id="join-room-btn" class="btn">Vào</button>
+            </div>
+          </div>
+        </div>
+        <!-- Theme Selector -->
+        <div class="theme-selector">
+          <h3>🎨 Chọn theme</h3>
+          <div class="theme-options">
+            <button class="theme-btn active" data-theme="neon">
+              <div class="theme-preview neon-theme"></div>
+              <span>Neon</span>
+            </button>
+            <button class="theme-btn" data-theme="ocean">
+              <div class="theme-preview ocean-theme"></div>
+              <span>Ocean</span>
+            </button>
+            <button class="theme-btn" data-theme="fire">
+              <div class="theme-preview fire-theme"></div>
+              <span>Fire</span>
+            </button>
+            <button class="theme-btn" data-theme="forest">
+              <div class="theme-preview forest-theme"></div>
+              <span>Forest</span>
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="error-message"
+          style="
+            color: var(--accent-color);
+            text-align: center;
+            margin-top: 1rem;
+            min-height: 20px;
+          "
+        ></div>
+      </div>
+
+      <!-- Màn hình chơi game -->
+      <div id="game-screen" class="screen">
+        <header class="game-header">
+          <div class="header-left">
+            <span id="game-mode-display" class="game-mode-display"
+              >🎮 Cổ điển</span
+            >
+            <span id="room-code-display-wrapper"
+              >Mã phòng: <strong id="room-code-display">...</strong></span
+            >
+            <span id="points-display" class="points-display">💰 0</span>
+          </div>
+          <!-- NÚT QUAY LẠI ĐÃ ĐƯỢC THÊM -->
+          <button id="back-to-menu-btn">Quay lại Menu</button>
+        </header>
+        <div id="player1-card" class="player-card">
+          <div id="p1-avatar" class="player-avatar">?</div>
+          <div id="p1-name" class="player-name">Bạn</div>
+          <div id="p1-streak" class="win-streak"></div>
+          <div id="p1-choice" class="player-choice-display">
+            <span class="player-status"></span>
+          </div>
+        </div>
+        <div id="player2-card" class="player-card">
+          <div id="p2-avatar" class="player-avatar">?</div>
+          <div id="p2-name" class="player-name">Đối thủ</div>
+          <div id="p2-streak" class="win-streak"></div>
+          <div id="p2-choice" class="player-choice-display">
+            <span class="player-status"></span>
+          </div>
+        </div>
+        <div id="timer-display">30</div>
+        <div id="result-display">Hãy đưa ra lựa chọn của bạn!</div>
+        <div class="choices">
+          <button class="choice-btn" data-choice="rock">✊</button>
+          <button class="choice-btn" data-choice="paper">✋</button>
+          <button class="choice-btn" data-choice="scissors">✌️</button>
+        </div>
+        <!-- Thống kê và thành tích -->
+        <div class="stats-container">
+          <div class="stats-panel">
+            <h3>📊 Thống kê</h3>
+            <div class="stats-grid">
+              <div class="stat-item">
+                <span class="stat-label">Thắng:</span>
+                <span class="stat-value" id="wins-count">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Thua:</span>
+                <span class="stat-value" id="losses-count">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Hòa:</span>
+                <span class="stat-value" id="draws-count">0</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Tỷ lệ thắng:</span>
+                <span class="stat-value" id="win-rate">0%</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="achievements-panel">
+            <h3>🏆 Thành tích</h3>
+            <div class="achievements-grid" id="achievements-grid">
+              <!-- Achievements sẽ được thêm bằng JavaScript -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Power-ups -->
+        <div class="powerups-container" id="powerups-container">
+          <h3>⚡ Power-ups</h3>
+          <div class="powerups-grid">
+            <button class="powerup-btn" data-powerup="double-points" disabled>
+              <span class="powerup-icon">💎</span>
+              <span class="powerup-name">Điểm x2</span>
+              <span class="powerup-cost">100</span>
+            </button>
+            <button class="powerup-btn" data-powerup="extra-time" disabled>
+              <span class="powerup-icon">⏰</span>
+              <span class="powerup-name">+5s</span>
+              <span class="powerup-cost">50</span>
+            </button>
+            <button class="powerup-btn" data-powerup="hint" disabled>
+              <span class="powerup-icon">💡</span>
+              <span class="powerup-name">Gợi ý</span>
+              <span class="powerup-cost">75</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages"></div>
+          <form id="chat-input-form" class="chat-input-form">
+            <input
+              type="text"
+              id="chat-input"
+              placeholder="Nhập tin nhắn..."
+              autocomplete="off"
+            />
+            <button type="submit" class="btn">Gửi</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Âm thanh -->
+    <audio id="sound-win" src="assets/sounds/win.mp3" preload="auto"></audio>
+    <audio id="sound-lose" src="assets/sounds/lose.mp3" preload="auto"></audio>
+    <audio id="sound-draw" src="assets/sounds/draw.mp3" preload="auto"></audio>
+    <audio id="sound-chat" src="assets/sounds/chat.mp3" preload="auto"></audio>
+    <audio
+      id="sound-choice"
+      src="assets/sounds/choice.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="sound-background"
+      src="assets/sounds/background.mp3"
+      loop
+      preload="auto"
+    ></audio>
+
+    <!-- Âm thanh mới -->
+    <audio
+      id="sound-countdown"
+      src="assets/sounds/countdown.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="sound-powerup"
+      src="assets/sounds/powerup.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="sound-achievement"
+      src="assets/sounds/achievement.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="sound-special"
+      src="assets/sounds/special.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="sound-combo"
+      src="assets/sounds/combo.mp3"
+      preload="auto"
+    ></audio>
+    <audio
+      id="sound-levelup"
+      src="assets/sounds/levelup.mp3"
+      preload="auto"
+    ></audio>
+
+    <script src="./assets/main.js?v=4.0"></script>
+  </body>
 </html>
