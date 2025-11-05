@@ -930,3 +930,390 @@ function handleCPUGame(playerChoice) {
 }
 
 playCpuBtn.addEventListener("click", startGameVsCPU);
+// ===== HÀM HIỂN THỊ CHAT ĐÃ ĐƯỢC CẬP NHẬT =====
+function displayChatMessage({ sender_name, sender_avatar, text }) {
+  const messageEl = document.createElement("div");
+  const sanitizedText = text.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  // Nếu là tin nhắn hệ thống
+  if (sender_name === "Hệ thống") {
+    messageEl.classList.add("system-message");
+    messageEl.textContent = sanitizedText;
+  }
+  // Nếu là tin nhắn người chơi
+  else {
+    messageEl.classList.add("chat-message");
+    let avatarHTML = "";
+    if (sender_avatar.startsWith("data:image")) {
+      avatarHTML = `<img class="chat-avatar" src="${sender_avatar}" alt="${sender_name}">`;
+    } else if (sender_avatar.includes(".")) {
+      avatarHTML = `<img class="chat-avatar" src="assets/images/avatars/${sender_avatar}" alt="${sender_name}">`;
+    } else {
+      avatarHTML = `<span class="chat-avatar">${sender_avatar}</span>`;
+    }
+    messageEl.innerHTML = `${avatarHTML}<div><span class="chat-sender">${sender_name}:</span> <span class="chat-text">${sanitizedText}</span></div>`;
+  }
+
+  chatMessages.prepend(messageEl);
+
+  // Phát âm thanh cho tin nhắn của người khác và tin nhắn hệ thống
+  if (sender_name !== localPlayerInfo.name) {
+    playSound("chat");
+  }
+}
+
+document.querySelector(".player-info").addEventListener("click", (e) => {
+  if (
+    e.target.classList.contains("avatar") ||
+    e.target.classList.contains("avatar-image")
+  ) {
+    const currentSelected = document.querySelector(".selected");
+    if (currentSelected) {
+      currentSelected.classList.remove("selected");
+    }
+    e.target.classList.add("selected");
+  }
+});
+
+avatarUploadInput.addEventListener("change", (event) => {
+  const file = event.target.files[0];
+  if (file && file.type.startsWith("image/")) {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      customAvatarData = e.target.result;
+
+      let preview = document.getElementById("custom-avatar-preview");
+      if (!preview) {
+        preview = document.createElement("img");
+        preview.id = "custom-avatar-preview";
+        preview.classList.add("avatar-image");
+        document.querySelector(".image-avatar-selector").appendChild(preview);
+      }
+      preview.src = customAvatarData;
+
+      const currentSelected = document.querySelector(".selected");
+      if (currentSelected) currentSelected.classList.remove("selected");
+      preview.classList.add("selected");
+    };
+
+    reader.readAsDataURL(file);
+  }
+});
+
+chatForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = chatInput.value.trim();
+  if (text) {
+    ws.send(createMessage("chat_message", { text }));
+    chatInput.value = "";
+  }
+});
+
+roomCodeDisplay.addEventListener("click", () => {
+  navigator.clipboard
+    .writeText(roomCodeDisplay.textContent)
+    .then(() => alert("Đã sao chép mã phòng!"));
+});
+
+backToMenuBtn.addEventListener("click", () => {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.close();
+  }
+  stopAfkCountdown(); // Dừng timer khi quay về menu
+  showScreen("home");
+  roomState = {};
+  localPlayerInfo = getPlayerInfoFromDOM() || { name: "", avatar: "😀" };
+});
+// ===== EVENT LISTENERS CHO POWER-UPS =====
+document.addEventListener("click", (e) => {
+  if (e.target.closest(".powerup-btn")) {
+    const btn = e.target.closest(".powerup-btn");
+    const powerupId = btn.dataset.powerup;
+    if (powerupId && !btn.disabled) {
+      usePowerup(powerupId);
+    }
+  }
+});
+
+// ===== KHỞI TẠO HỆ THỐNG =====
+function initializeGame() {
+  // Load theme đã lưu
+  const savedTheme = localStorage.getItem("selectedTheme");
+  if (savedTheme && ["neon", "ocean", "fire", "forest"].includes(savedTheme)) {
+    setTheme(savedTheme);
+  } else {
+    setTheme("neon"); // Default theme
+  }
+
+  // Load game mode đã lưu
+  const savedGameMode = localStorage.getItem("selectedGameMode");
+  if (
+    savedGameMode &&
+    gameModes[savedGameMode] &&
+    savedGameMode !== "tournament"
+  ) {
+    setGameMode(savedGameMode);
+  }
+
+  // Khởi tạo UI với stats mặc định (chưa có tên)
+  updateStats();
+  renderAchievements();
+  updatePowerups();
+
+  // Load thống kê nếu đã có tên trong input
+  const currentName = playerNameInput.value.trim();
+  if (currentName) {
+    loadPlayerStats(currentName);
+  }
+
+  // Lắng nghe thay đổi tên để tự động load stats
+  playerNameInput.addEventListener("change", () => {
+    const name = playerNameInput.value.trim();
+    if (name && localPlayerInfo && localPlayerInfo.name !== name) {
+      // Lưu stats của người chơi cũ trước
+      if (localPlayerInfo.name) {
+        saveGameData();
+      }
+      // Load stats của người chơi mới
+      localPlayerInfo.name = name;
+      loadPlayerStats(name);
+    }
+  });
+
+  // Lắng nghe blur (khi rời khỏi ô input) để load stats
+  playerNameInput.addEventListener("blur", () => {
+    const name = playerNameInput.value.trim();
+    if (name) {
+      if (localPlayerInfo.name && localPlayerInfo.name !== name) {
+        // Lưu stats của người chơi cũ
+        saveGameData();
+      }
+      localPlayerInfo.name = name;
+      loadPlayerStats(name);
+    }
+  });
+}
+
+// Lưu dữ liệu vào localStorage theo tên người chơi
+function saveGameData() {
+  if (localPlayerInfo && localPlayerInfo.name) {
+    const playerName = localPlayerInfo.name.trim();
+    if (playerName) {
+      localStorage.setItem(
+        `gameStats_${playerName}`,
+        JSON.stringify(gameStats)
+      );
+      localStorage.setItem(
+        `achievements_${playerName}`,
+        JSON.stringify(achievements)
+      );
+    }
+  }
+}
+
+// Load thống kê theo tên người chơi
+function loadPlayerStats(playerName) {
+  if (!playerName || !playerName.trim()) return;
+
+  const playerKey = playerName.trim();
+
+  // Reset về mặc định
+  gameStats = {
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    totalGames: 0,
+    winStreak: 0,
+    bestWinStreak: 0,
+    points: 0,
+    level: 1,
+  };
+
+  achievements = [
+    {
+      id: "first_win",
+      name: "Chiến thắng đầu tiên",
+      icon: "🎉",
+      unlocked: false,
+      description: "Thắng ván đầu tiên",
+    },
+    {
+      id: "win_streak_5",
+      name: "Chuỗi thắng 5",
+      icon: "🔥",
+      unlocked: false,
+      description: "Thắng liên tiếp 5 ván",
+    },
+    {
+      id: "win_streak_10",
+      name: "Chuỗi thắng 10",
+      icon: "💥",
+      unlocked: false,
+      description: "Thắng liên tiếp 10 ván",
+    },
+    {
+      id: "play_50",
+      name: "Người chơi chuyên nghiệp",
+      icon: "🏆",
+      unlocked: false,
+      description: "Chơi 50 ván",
+    },
+    {
+      id: "play_100",
+      name: "Bậc thầy",
+      icon: "👑",
+      unlocked: false,
+      description: "Chơi 100 ván",
+    },
+    {
+      id: "perfect_win",
+      name: "Chiến thắng hoàn hảo",
+      icon: "⭐",
+      unlocked: false,
+      description: "Thắng 10 ván liên tiếp không thua",
+    },
+  ];
+
+  // Load thống kê
+  const savedStats = localStorage.getItem(`gameStats_${playerKey}`);
+  if (savedStats) {
+    try {
+      const parsed = JSON.parse(savedStats);
+      gameStats = { ...gameStats, ...parsed };
+    } catch (e) {
+      console.error("Lỗi khi load thống kê:", e);
+    }
+  }
+
+  // Load thành tích
+  const savedAchievements = localStorage.getItem(`achievements_${playerKey}`);
+  if (savedAchievements) {
+    try {
+      const saved = JSON.parse(savedAchievements);
+      achievements.forEach((achievement) => {
+        const savedAchievement = saved.find((a) => a.id === achievement.id);
+        if (savedAchievement) {
+          achievement.unlocked = savedAchievement.unlocked;
+        }
+      });
+    } catch (e) {
+      console.error("Lỗi khi load thành tích:", e);
+    }
+  }
+
+  // Cập nhật UI
+  updateStats();
+  renderAchievements();
+  updatePowerups();
+}
+
+// Khởi tạo khi trang load
+document.addEventListener("DOMContentLoaded", initializeGame);
+
+// Lưu dữ liệu khi trang đóng
+window.addEventListener("beforeunload", saveGameData);
+
+// ===== HỆ THỐNG GAME MODES =====
+function setGameMode(mode) {
+  currentGameMode = mode;
+
+  // Cập nhật UI
+  document.querySelectorAll(".mode-btn").forEach((btn) => {
+    btn.classList.remove("active");
+  });
+  document.querySelector(`[data-mode="${mode}"]`).classList.add("active");
+
+  // Cập nhật hiển thị game mode trong game screen
+  updateGameModeDisplay();
+
+  // Hiệu ứng chuyển đổi
+  playSound("choice");
+
+  // Cập nhật mô tả
+  const modeInfo = gameModes[mode];
+  console.log(`Chế độ chơi: ${modeInfo.name} - ${modeInfo.description}`);
+}
+
+// Hàm cập nhật hiển thị game mode
+function updateGameModeDisplay() {
+  if (gameModeDisplay && gameModes[currentGameMode]) {
+    const modeInfo = gameModes[currentGameMode];
+    const icons = {
+      classic: "⚔️",
+      speed: "⚡",
+    };
+    gameModeDisplay.textContent = `${icons[currentGameMode] || "🎮"} ${
+      modeInfo.name
+    }`;
+  }
+}
+
+// ===== HỆ THỐNG THEME =====
+function setTheme(theme) {
+  currentTheme = theme;
+
+  // Xóa class theme cũ
+  document.documentElement.classList.remove("neon", "ocean", "fire", "forest");
+
+  // Thêm class theme mới
+  document.documentElement.classList.add(theme);
+
+  // Cập nhật UI
+  document.querySelectorAll(".theme-btn").forEach((btn) => {
+    btn.classList.remove("active");
+  });
+  document.querySelector(`[data-theme="${theme}"]`).classList.add("active");
+
+  // Hiệu ứng chuyển đổi
+  playSound("special");
+
+  // Lưu theme
+  localStorage.setItem("selectedTheme", theme);
+}
+
+// ===== CHẾ ĐỘ CHƠI ĐẶC BIỆT =====
+function handleSpecialGameMode() {
+  switch (currentGameMode) {
+    case "speed":
+      // Chế độ tốc độ - thêm áp lực thời gian
+      addSpeedModeEffects();
+      break;
+  }
+}
+
+function addSpeedModeEffects() {
+  // Thay đổi màu timer
+  timerDisplay.style.background = "#ff4500";
+}
+
+// ===== EVENT LISTENERS CHO GAME MODES VÀ THEMES =====
+document.addEventListener("click", (e) => {
+  // Game mode selection
+  if (e.target.closest(".mode-btn")) {
+    const btn = e.target.closest(".mode-btn");
+    const mode = btn.dataset.mode;
+    if (mode) {
+      setGameMode(mode);
+      handleSpecialGameMode();
+    }
+  }
+
+  // Theme selection
+  if (e.target.closest(".theme-btn")) {
+    const btn = e.target.closest(".theme-btn");
+    const theme = btn.dataset.theme;
+    if (theme) {
+      setTheme(theme);
+    }
+  }
+
+  // Power-up selection
+  if (e.target.closest(".powerup-btn")) {
+    const btn = e.target.closest(".powerup-btn");
+    const powerupId = btn.dataset.powerup;
+    if (powerupId && !btn.disabled) {
+      usePowerup(powerupId);
+    }
+  }
+});
